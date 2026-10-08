@@ -82,10 +82,16 @@ int main() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
     processInput(window, {&shader});
+    int framebufferWidth = 0;
+    int framebufferHeight = 0;
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
     glm::mat4 model = glm::mat4(1.0f);
     //model = glm::rotate(model, glm::radians(static_cast<float>(glfwGetTime())), glm::vec3(0.0f, 0.0f, 1.0f));
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 proj = glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 500.0f);
+    float aspect = framebufferHeight > 0
+        ? static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight)
+        : static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
+    glm::mat4 proj = glm::perspective(glm::radians(camera.Zoom), aspect, 0.1f, 500.0f);
     glm::mat4 mvp = proj * view * model;
 
 
@@ -97,12 +103,11 @@ int main() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw floor molecule
-    if(mol) drawMolecule(shader.getID(), baseSphere.vao, baseSphere.vertexCount, molecule.size(), mvp);
     if (vol) {
-        glDisable(GL_CULL_FACE);
+      glCullFace(GL_FRONT);
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
 
         volumeShader.Use();
         volumeShader.SetInt("volumeTex", 0);
@@ -113,7 +118,8 @@ int main() {
         glm::mat4 invMVP = glm::inverse(mvp);
         volumeShader.SetMat4("invMVP", invMVP);
         volumeShader.SetVec3("cameraPos", camera.Position);
-        volumeShader.SetVec2("screenSize", glm::vec2(SCR_WIDTH, SCR_HEIGHT));
+        volumeShader.SetVec2("screenSize", glm::vec2(
+            static_cast<float>(framebufferWidth), static_cast<float>(framebufferHeight)));
 
         // 🟢 Neue Uniforms für die Bounding Box
 // main.cpp
@@ -123,7 +129,13 @@ int main() {
         glBindVertexArray(cubeVAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glCullFace(GL_BACK);
     }
+
+    if(mol) drawMolecule(shader.getID(), baseSphere.vao, baseSphere.vertexCount, molecule.size(), mvp);
 
 
 

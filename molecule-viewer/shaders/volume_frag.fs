@@ -9,8 +9,8 @@ uniform vec3 minCorner;    // min Eckpunkt des Volumens
 uniform vec3 maxCorner;    // max Eckpunkt des Volumens
 uniform vec3 cameraPos;
 
-const int MAX_STEPS = 160000;
-const float STEP_SIZE = 0.01;
+const int MAX_STEPS = 512;
+const float STEP_SIZE = 0.2;
 
 vec4 transferFunction(float value) {
     float v = smoothstep(0.0, 1.0, value);
@@ -55,7 +55,7 @@ void main()
     float tmin, tmax;
     if (!intersectBox(rayOrigin, rayDir, tmin, tmax)) discard;
 
-    // 5. Korrekten Startpunkt für das Ray-Marching bestimmen
+    // 5. Korrekten Startpunkt fï¿½r das Ray-Marching bestimmen
     // tmin = Distanz von Kamera zum Box-Eintritt
     // tmax = Distanz von Kamera zum Box-Austritt
     //
@@ -85,7 +85,7 @@ void main()
 
         if (color.a >= 0.99) break; // Early exit
 
-        // Nächster Schritt
+        // Nï¿½chster Schritt
         t += STEP_SIZE;
         pos += STEP_SIZE * rayDir;
     }

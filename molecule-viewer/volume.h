@@ -57,13 +57,17 @@ VolumetricData loadDx(const std::string& filename) {
     }
 
     int total = volume.nx * volume.ny * volume.nz;
-    volume.values.reserve(total);
+    volume.values.resize(total);
     float val;
-    while (volume.values.size() < total && file >> val) {
+    while (i < total && file >> val) {
+        int x = i / (volume.ny * volume.nz);
+        int y = (i / volume.nz) % volume.ny;
+        int z = i % volume.nz;
+        int openGLIndex = x + volume.nx * (y + volume.ny * z);
+        volume.values[openGLIndex] = val;
         i++;
-        volume.values.push_back(val);
     }
-    if (volume.values.size() != total)
+    if (i != total)
         throw std::runtime_error("Datenmenge stimmt nicht mit Gridgröße überein");
     std::cout << i << std::endl;
     // physikalische Größe
@@ -146,9 +150,9 @@ void BoundingBox() {
     };
 
     unsigned int cubeIndices[] = {
-        0,1,2, 2,3,0,  4,5,6, 6,7,4,
+        0,2,1, 2,0,3,  4,5,6, 6,7,4,
         0,1,5, 5,4,0,  2,3,7, 7,6,2,
-        0,3,7, 7,4,0,  1,2,6, 6,5,1,
+        0,7,3, 7,0,4,  1,2,6, 6,5,1,
     };
 
     unsigned int cubeEBO;
