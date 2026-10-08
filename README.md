@@ -58,16 +58,23 @@ To generate a volumetric map from PDB data, [VMD](https://www.ks.uiuc.edu/Resear
 
 ## Pictures:
 <img width="765" height="610" alt="image" src="https://github.com/user-attachments/assets/6f854b3a-fabc-4533-898d-c74e46433b93" />
-<img width="933" height="589" alt="image" src="https://github.com/user-attachments/assets/0841189f-5cd3-4e04-ba37-d1a19b85bdac" />
 <img width="982" height="695" alt="image" src="https://github.com/user-attachments/assets/5336f817-cc6e-4b59-98b1-0074ab43bb94" />
+<img width="933" height="589" alt="image" src="https://github.com/user-attachments/assets/0841189f-5cd3-4e04-ba37-d1a19b85bdac" />
 
 Atom colours:
+
 Hydrogen - white
+
 Carbon - grey
+
 Nitrogen - blue
+
 Oxygen - red
+
 Fluorine - green
+
 Phosphorous - orange
+
 sulfur - yellow
 
 (Colours might change in future updates)
