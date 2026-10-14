@@ -1,7 +1,7 @@
 # Molecule Viewer
 
 A small C++/OpenGL hobby project for visualizing molecular structures. The current build displays atoms from a PDB file. Volumetric rendering from an OpenDX grid is experimental and may not render correctly.
-Customization options are planned for the near future.
+Molecule paths, window and camera settings, atom colors, rendering quality, and lighting can be configured in `molecule-viewer/config/config.json`.
 
 ## Requirements
 
