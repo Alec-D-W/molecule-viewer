@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
+#include <cmath>
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement {
@@ -54,6 +55,15 @@ public:
     glm::mat4 GetViewMatrix()
     {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+
+    void FocusOn(const glm::vec3& target, const glm::vec3& positionOffset)
+    {
+        Position = target + positionOffset;
+        const glm::vec3 direction = glm::normalize(target - Position);
+        Yaw = glm::degrees(std::atan2(direction.z, direction.x));
+        Pitch = glm::degrees(std::asin(glm::clamp(direction.y, -0.999f, 0.999f)));
+        updateCameraVectors();
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)

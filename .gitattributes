@@ -1,1 +1,2 @@
 resources/** linguist-vendored
+molecule-viewer/stb_image.h linguist-vendored

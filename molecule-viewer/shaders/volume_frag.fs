@@ -4,13 +4,12 @@ out vec4 FragColor;
 uniform sampler3D volumeTex;
 uniform mat4 invMVP;       // inverse(proj * view * model)
 uniform vec2 screenSize;   // in pixels
+uniform float stepSize;
+uniform int maxSteps;
 
 uniform vec3 minCorner;    // min Eckpunkt des Volumens
 uniform vec3 maxCorner;    // max Eckpunkt des Volumens
 uniform vec3 cameraPos;
-
-const int MAX_STEPS = 512;
-const float STEP_SIZE = 0.2;
 
 vec4 transferFunction(float value) {
     float v = smoothstep(0.0, 1.0, value);
@@ -69,7 +68,7 @@ void main()
     vec4 color = vec4(0.0);
 
     // 7. Ray-Marching-Schleife (Rest ist identisch)
-    for (int i = 0; i < MAX_STEPS && t < tmax; ++i) {
+    for (int i = 0; i < maxSteps && t < tmax; ++i) {
         
         // Weltkoordinaten -> Texturkoordinaten [0,1]
         vec3 texPos = (pos - minCorner) / (maxCorner - minCorner);
@@ -86,8 +85,8 @@ void main()
         if (color.a >= 0.99) break; // Early exit
 
         // N�chster Schritt
-        t += STEP_SIZE;
-        pos += STEP_SIZE * rayDir;
+        t += stepSize;
+        pos += stepSize * rayDir;
     }
 
     FragColor = color;

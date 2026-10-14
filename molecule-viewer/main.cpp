@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "volume.h"
 #include "load_molecule.h"
+#include "load_config.h"
 #include <map>
 
 // Visual Studio Build
@@ -39,37 +40,66 @@ float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
 int main() {
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-  if(window == NULL) {
-    std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    return -1;
+    const AppConfig config = loadConfig("config/config.json");
+    mol = config.rendering.showAtoms;
+    vol = config.rendering.showVolume;
+    camera.Zoom = config.camera.fovDegrees;
+    lastX = static_cast<float>(config.window.width) * 0.5f;
+    lastY = static_cast<float>(config.window.height) * 0.5f;
+
+    if (!glfwInit()) {
+      std::cerr << "Failed to initialize GLFW" << std::endl;
+      return -1;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, config.graphics.msaaSamples);
+    GLFWwindow* window = glfwCreateWindow(
+      config.window.width, config.window.height, "Molecule Viewer", NULL, NULL);
+    if(window == NULL) {
+      std::cout << "Failed to create GLFW window" << std::endl;
+      glfwTerminate();
+      return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSwapInterval(config.window.vsync ? 1 : 0);
+    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+      std::cout << "Failed to initialize GLAD" << std::endl;
+      glfwDestroyWindow(window);
+      glfwTerminate();
+      return -1;
   }
-  glfwMakeContextCurrent(window);
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-  glfwSetCursorPosCallback(window, mouse_callback);
-  glfwSetScrollCallback(window, scroll_callback);
-  glfwSetKeyCallback(window, key_callback);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSwapInterval(1);
-  glfwWindowHint(GLFW_SAMPLES, 4);
-  if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
- }
+  glEnable(GL_MULTISAMPLE);
+  int initialFramebufferWidth = 0;
+  int initialFramebufferHeight = 0;
+  glfwGetFramebufferSize(window, &initialFramebufferWidth, &initialFramebufferHeight);
+  framebuffer_size_callback(window, initialFramebufferWidth, initialFramebufferHeight);
 
   Shader shader("shaders/model_vert.vs", "shaders/model_frag.fs");
 
-  SphereMesh baseSphere = createSphereVAO();
-  std::vector<Atom> molecule = loadPDB("models/2RT4.pdb");
+  SphereMesh baseSphere = createSphereVAO(
+      config.rendering.sphereSegments,
+      config.rendering.sphereRings,
+      config.rendering.sphereRadius);
+  std::vector<Atom> molecule = loadPDB(config.molecule.atoms, config.atomStyles);
+  glm::vec3 moleculeMin = molecule.front().position;
+  glm::vec3 moleculeMax = molecule.front().position;
+  for (const Atom& atom : molecule) {
+      moleculeMin = glm::min(moleculeMin, atom.position);
+      moleculeMax = glm::max(moleculeMax, atom.position);
+  }
+  const glm::vec3 moleculeCenter = (moleculeMin + moleculeMax) * 0.5f;
+  camera.FocusOn(moleculeCenter, config.camera.positionOffset);
   setupMolecule(molecule, baseSphere.vao);
 
   Shader volumeShader(Path + "shaders/volume_vert.vs", Path + "shaders/volume_frag.fs");
-  unsigned int vol_mol = Gen3DTex(loadDx("models/volmap_7.dx"));
+  unsigned int vol_mol = Gen3DTex(loadDx(config.molecule.volume));
   volumeShader.Use();
   glActiveTexture(GL_TEXTURE0); // oder GL_TEXTURE1, je nach Slot
   glBindTexture(GL_TEXTURE_3D, vol_mol);
@@ -100,7 +130,7 @@ int main() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(config.graphics.backgroundColor.r, config.graphics.backgroundColor.g, config.graphics.backgroundColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (vol) {
@@ -117,14 +147,13 @@ int main() {
         volumeShader.SetVec3("cameraPos", camera.Position);
         glm::mat4 invMVP = glm::inverse(mvp);
         volumeShader.SetMat4("invMVP", invMVP);
-        volumeShader.SetVec3("cameraPos", camera.Position);
         volumeShader.SetVec2("screenSize", glm::vec2(
             static_cast<float>(framebufferWidth), static_cast<float>(framebufferHeight)));
 
-        // 🟢 Neue Uniforms für die Bounding Box
-// main.cpp
         volumeShader.SetVec3("minCorner", minCorner);
         volumeShader.SetVec3("maxCorner", maxCorner);
+        volumeShader.SetFloat("stepSize", config.rendering.volumeStepSize);
+        volumeShader.SetInt("maxSteps", config.rendering.volumeMaxSteps);
 
         glBindVertexArray(cubeVAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -135,7 +164,17 @@ int main() {
         glCullFace(GL_BACK);
     }
 
-    if(mol) drawMolecule(shader.getID(), baseSphere.vao, baseSphere.vertexCount, molecule.size(), mvp);
+    if(mol) {
+      shader.Use();
+      shader.SetVec3("ambientLightColor", config.graphics.ambientLightColor);
+      shader.SetVec3("directionalLightColor", config.graphics.directionalLightColor);
+      shader.SetVec3("directionalLightDirection", config.graphics.directionalLightDirection);
+      shader.SetVec3("specularColor", config.graphics.specularColor);
+      shader.SetVec3("cameraPos", camera.Position);
+      shader.SetFloat("specularStrength", config.graphics.specularStrength);
+      shader.SetFloat("shininess", config.graphics.shininess);
+      drawMolecule(shader.getID(), baseSphere.vao, baseSphere.vertexCount, molecule.size(), mvp);
+    }
 
 
 

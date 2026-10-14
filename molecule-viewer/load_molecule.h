@@ -1,8 +1,10 @@
+#pragma once
 #include <glm/glm/glm.hpp>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <fstream>
+#include <stdexcept>
 
 struct SphereMesh {
     GLuint vao;
@@ -19,36 +21,60 @@ struct Atom {
 
 //Hilfsstruct
 struct AtomProperties {
-    float radius;        // Van-der-Waals-Radius (Å)
-    glm::vec3 color;     // RGB (0–1)
+    float radius;        // Van-der-Waals-Radius (ï¿½)
+    glm::vec3 color;     // RGB (0ï¿½1)
 };
 
-const std::unordered_map<std::string, AtomProperties> atomLookup = {
-    { "H",  { 1.20f, glm::vec3(1.0f, 1.0f, 1.0f) } },        // White
-    { "C",  { 1.70f, glm::vec3(0.5f, 0.5f, 0.5f) } },        // Grey
-    { "N",  { 1.55f, glm::vec3(0.0f, 0.0f, 1.0f) } },        // Blue
-    { "O",  { 1.52f, glm::vec3(1.0f, 0.0f, 0.0f) } },        // Red
-    { "F",  { 1.47f, glm::vec3(0.0f, 1.0f, 0.0f) } },        // Green
-    { "P",  { 1.80f, glm::vec3(1.0f, 0.5f, 0.0f) } },        // Orange
-    { "S",  { 1.80f, glm::vec3(1.0f, 1.0f, 0.0f) } },        // Yellow
-};
+inline const std::unordered_map<std::string, AtomProperties>& defaultAtomProperties() {
+    static const std::unordered_map<std::string, AtomProperties> properties = {
+        { "H", { 1.20f, glm::vec3(1.0f, 1.0f, 1.0f) } },
+        { "C", { 1.70f, glm::vec3(0.5f, 0.5f, 0.5f) } },
+        { "N", { 1.55f, glm::vec3(0.0f, 0.0f, 1.0f) } },
+        { "O", { 1.52f, glm::vec3(1.0f, 0.0f, 0.0f) } },
+        { "F", { 1.47f, glm::vec3(0.0f, 1.0f, 0.0f) } },
+        { "P", { 1.80f, glm::vec3(1.0f, 0.5f, 0.0f) } },
+        { "S", { 1.80f, glm::vec3(1.0f, 1.0f, 0.0f) } },
+    };
+    return properties;
+}
 
 
-std::vector<Atom> loadPDB(const std::string& filename) {
+inline std::vector<Atom> loadPDB(
+    const std::string& filename,
+    const std::unordered_map<std::string, glm::vec3>& atomStyles) {
     std::ifstream file(filename);
+    if (!file) {
+        throw std::runtime_error("Unable to open PDB file: " + filename);
+    }
+
     std::vector<Atom> atoms;
+    const auto& properties = defaultAtomProperties();
+    const auto& fallback = properties.at("C");
 
     std::string line;
     while (std::getline(file, line)) {
-        if (line.substr(0, 4) == "ATOM" || line.substr(0, 6) == "HETATM") {
+        if (line.size() >= 54 && (line.compare(0, 4, "ATOM") == 0 || line.compare(0, 6, "HETATM") == 0)) {
             float x = std::stof(line.substr(30, 8));
             float y = std::stof(line.substr(38, 8));
             float z = std::stof(line.substr(46, 8));
-            std::string element = line.substr(77, 1);
-            //std::cout << element << std::endl;
-            auto pointer = atomLookup.find(element);
-            atoms.push_back({ glm::vec3(x, y, z), element, pointer->second.radius*0.1f, pointer->second.color });
+            std::string element = line.size() > 76 ? line.substr(76, 2) : std::string();
+            const auto first = element.find_first_not_of(" \t");
+            if (first == std::string::npos) {
+                element.clear();
+            }
+            else {
+                element = element.substr(first, element.find_last_not_of(" \t") - first + 1);
+            }
+
+            const auto property = properties.find(element);
+            const AtomProperties& atom = property != properties.end() ? property->second : fallback;
+            const auto style = atomStyles.find(element);
+            const glm::vec3 color = style != atomStyles.end() ? style->second : atom.color;
+            atoms.push_back({ glm::vec3(x, y, z), element, atom.radius * 0.1f, color });
         }
+    }
+    if (atoms.empty()) {
+        throw std::runtime_error("PDB file contains no atom records: " + filename);
     }
     return atoms;
 }
@@ -57,7 +83,7 @@ struct AtomInstance {
     glm::vec3 position;
     float radius;
     glm::vec3 color;
-    float _pad = 0.0f; // Padding für Alignment (16-Byte Alignment)
+    float _pad = 0.0f; // Padding fï¿½r Alignment (16-Byte Alignment)
 };
 
 

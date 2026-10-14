@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "molecule": {
+    "atoms": "models/2RT4.pdb",
+    "volume": "models/volmap_7.dx"
+  },
+  "window": {
+    "width": 1600,
+    "height": 900,
+    "vsync": true
+  },
+  "camera": {
+    "fovDegrees": 45,
+    "positionOffset": [0, 0, 100]
+  },
+  "rendering": {
+    "showAtoms": true,
+    "showVolume": false,
+    "volumeStepSize": 0.2,
+    "volumeMaxSteps": 512,
+    "sphereSegments": 12,
+    "sphereRings": 12,
+    "sphereRadius": 1.0
+  },
+  "atomStyles": {
+    "H": { "color": [1, 1, 1] },
+    "C": { "color": [0.5, 0.5, 0.5] },
+    "N": { "color": [0, 0, 1] },
+    "O": { "color": [1, 0, 0] },
+    "F": { "color": [0, 0.809, 0] },
+    "P": { "color": [1, 0.5, 0] },
+    "S": { "color": [1, 1, 0] },
+    "Cl": { "color": [0.781, 0.957, 0.734] },
+    "Br": { "color": [0.477, 0.41, 0.066] },
+    "I": { "color": [0.398, 0.086, 0.398] },
+    "B": { "color": [0.1, 0.1, 0.1] }
+  },
+  "graphics": {
+    "backgroundColor": [0.0, 0.0, 0.0],
+    "ambientLightColor": [0.2, 0.2, 0.2],
+    "directionalLightColor": [1, 1, 1],
+    "directionalLightDirection": [1, -1, 1],
+    "specularColor": [1, 1, 1],
+    "specularStrength": 0.35,
+    "shininess": 32,
+    "msaaSamples": 4
+  }
+}
