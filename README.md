@@ -17,6 +17,23 @@ The project uses the Visual Studio solution and includes its header dependencies
 2. Select the `Release` configuration and `x64` platform.
 3. Build the solution.
 
+### Linux (x86_64)
+
+Install `g++`, GLFW, and OpenGL development packages (for Debian or Ubuntu: `g++ libglfw3-dev libgl1-mesa-dev`). From the repository root, compile with:
+
+```sh
+g++ -std=c++17 -O2 -DNDEBUG -Iresources/include \
+	molecule-viewer/main.cpp resources/src/glad.c \
+	-lglfw -lGL -ldl -pthread -o molecule-viewer-linux
+```
+
+Run the executable from the `molecule-viewer/` directory so the relative `config/`, `models/`, and `shaders/` paths resolve:
+
+```sh
+cd molecule-viewer
+../molecule-viewer-linux
+```
+
 The application loads shaders and model data using paths relative to its working directory. Run it from a directory containing the `shaders/` and `models/` folders described below.
 
 ## Configuration
@@ -56,6 +73,8 @@ release/
 ```
 
 The PDB and DX model files are not included in the source repository; they are required at runtime and are distributed in the Release archive.
+
+Linux releases use the same directory layout, with the executable named `molecule-viewer` instead of `molecule-viewer.exe`. Extract the Linux archive and run `./molecule-viewer` from its top-level directory. The Linux binary dynamically links to GLFW and requires an OpenGL 3.3-capable driver.
 
 ## Controls
 
